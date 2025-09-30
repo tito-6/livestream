@@ -1,0 +1,59 @@
+config:
+  target: 'http://localhost:8080'
+  phases:
+    # Normal load
+    - duration: 60
+      arrivalRate: 50
+      name: "Normal Load"
+    # Sudden spike
+    - duration: 30
+      arrivalRate: 2000
+      name: "Traffic Spike"
+    # Return to normal
+    - duration: 60
+      arrivalRate: 50
+      name: "Recovery"
+    # Another spike
+    - duration: 30
+      arrivalRate: 3000
+      name: "Second Spike"
+    # Final recovery
+    - duration: 60
+      arrivalRate: 50
+      name: "Final Recovery"
+  
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+      User-Agent: 'Spike-Test/1.0'
+  
+  plugins:
+    metrics-by-endpoint: {}
+
+scenarios:
+  - name: "Spike Response Test"
+    weight: 50
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: [200, 503, 502, 504]
+      - think: 1
+      - get:
+          url: "/api/v1/streams/list"
+          headers:
+            X-Admin-Key: "SUPER_SECURE_KEY"
+          expect:
+            - statusCode: [200, 503, 502, 504]
+      - think: 2
+
+  - name: "WebSocket Spike Test"
+    weight: 50
+    engine: ws
+    flow:
+      - connect:
+          url: "ws://localhost:3001"
+          expect:
+            - statusCode: [101, 503, 502, 504]
+      - think: 5
+      - disconnect:

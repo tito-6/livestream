@@ -1,0 +1,50 @@
+config:
+  target: 'http://localhost:8080'
+  phases:
+    # Continuous monitoring load
+    - duration: 600  # 10 minutes
+      arrivalRate: 10
+      name: "Continuous Monitoring"
+  
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+      User-Agent: 'Monitoring/1.0'
+  
+  plugins:
+    metrics-by-endpoint: {}
+
+scenarios:
+  - name: "Health Monitoring"
+    weight: 30
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+            - responseTime: 1000  # Alert if > 1 second
+      - think: 10
+
+  - name: "API Monitoring"
+    weight: 40
+    flow:
+      - get:
+          url: "/api/v1/streams/list"
+          headers:
+            X-Admin-Key: "SUPER_SECURE_KEY"
+          expect:
+            - statusCode: 200
+            - responseTime: 2000  # Alert if > 2 seconds
+      - think: 15
+
+  - name: "WebSocket Monitoring"
+    weight: 30
+    engine: ws
+    flow:
+      - connect:
+          url: "ws://localhost:3001"
+          expect:
+            - statusCode: 101
+            - responseTime: 5000  # Alert if > 5 seconds
+      - think: 30
+      - disconnect:

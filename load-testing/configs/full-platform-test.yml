@@ -1,0 +1,136 @@
+config:
+  target: 'http://localhost:8080'
+  phases:
+    # Simulate tournament start - gradual buildup
+    - duration: 300
+      arrivalRate: 20
+      name: "Tournament Start"
+    # Peak viewing - high concurrent load
+    - duration: 600
+      arrivalRate: 100
+      name: "Peak Viewing"
+    # Match climax - maximum load
+    - duration: 300
+      arrivalRate: 200
+      name: "Match Climax"
+    # Gradual decrease
+    - duration: 300
+      arrivalRate: 50
+      name: "Post-Match"
+  
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+      User-Agent: 'eSports-Viewer/1.0'
+  
+  plugins:
+    metrics-by-endpoint: {}
+
+scenarios:
+  - name: "Complete User Journey"
+    weight: 50
+    flow:
+      # Step 1: User arrives at platform
+      - get:
+          url: "/"
+          expect:
+            - statusCode: 200
+      - think: 2
+      
+      # Step 2: User authenticates
+      - get:
+          url: "/api/v1/auth/google/login"
+          expect:
+            - statusCode: 200
+      - think: 1
+      - get:
+          url: "/api/v1/auth/google/callback?code=MOCK_AUTH_CODE"
+          expect:
+            - statusCode: 200
+            - hasProperty: "token"
+      - think: 3
+      
+      # Step 3: User connects to stream (WebSocket)
+      - websocket:
+          url: "ws://localhost:3001"
+          expect:
+            - statusCode: 101
+      - think: 5
+      
+      # Step 4: User receives real-time updates
+      - websocket:
+          receive:
+            message: "viewerCount"
+            expect:
+              - hasProperty: "count"
+      - think: 10
+      
+      # Step 5: User participates in poll
+      - websocket:
+          receive:
+            message: "newPoll"
+            expect:
+              - hasProperty: "question"
+      - think: 15
+      
+      # Step 6: User disconnects
+      - websocket:
+          disconnect:
+
+  - name: "Admin Stream Management"
+    weight: 20
+    flow:
+      # Admin starts stream
+      - post:
+          url: "/api/v1/streams/start"
+          headers:
+            X-Admin-Key: "SUPER_SECURE_KEY"
+          json:
+            stream_id: "tournament-{{ $randomString() }}"
+            stream_url: "rtmp://tournament.example.com/stream"
+            username: "tournament_admin"
+            password: "secure_password"
+          expect:
+            - statusCode: 200
+      - think: 5
+      
+      # Admin monitors stream
+      - get:
+          url: "/api/v1/streams/list"
+          headers:
+            X-Admin-Key: "SUPER_SECURE_KEY"
+          expect:
+            - statusCode: 200
+            - hasProperty: "streams"
+      - think: 10
+      
+      # Admin stops stream
+      - post:
+          url: "/api/v1/streams/stop"
+          headers:
+            X-Admin-Key: "SUPER_SECURE_KEY"
+          json:
+            stream_id: "tournament-{{ $randomString() }}"
+          expect:
+            - statusCode: 200
+
+  - name: "High-Frequency API Calls"
+    weight: 30
+    flow:
+      - loop:
+          - get:
+              url: "/health"
+              expect:
+                - statusCode: 200
+          - think: 1
+        count: 10
+      
+      - loop:
+          - get:
+              url: "/api/v1/streams/list"
+              headers:
+                X-Admin-Key: "SUPER_SECURE_KEY"
+              expect:
+                - statusCode: 200
+          - think: 2
+        count: 5

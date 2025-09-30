@@ -1,0 +1,78 @@
+config:
+  target: 'http://localhost:3001'
+  phases:
+    # Gradual connection buildup
+    - duration: 120
+      arrivalRate: 100
+      name: "Connection Buildup"
+    # Sustained high load
+    - duration: 300
+      arrivalRate: 500
+      name: "Sustained Load"
+    # Peak load
+    - duration: 180
+      arrivalRate: 1000
+      name: "Peak Load"
+    # Gradual connection teardown
+    - duration: 120
+      arrivalRate: 50
+      name: "Connection Teardown"
+  
+  plugins:
+    metrics-by-endpoint: {}
+
+scenarios:
+  - name: "WebSocket Connection Test"
+    weight: 40
+    engine: ws
+    flow:
+      - connect:
+          url: "ws://localhost:3001"
+          expect:
+            - statusCode: 101
+      - think: 5
+      - send:
+          message: "ping"
+      - think: 10
+      - disconnect:
+
+  - name: "Real-time Polling Test"
+    weight: 30
+    engine: ws
+    flow:
+      - connect:
+          url: "ws://localhost:3001"
+          expect:
+            - statusCode: 101
+      - think: 2
+      # Listen for viewer count updates
+      - receive:
+          message: "viewerCount"
+          expect:
+            - hasProperty: "count"
+      - think: 5
+      # Listen for poll notifications
+      - receive:
+          message: "newPoll"
+          expect:
+            - hasProperty: "question"
+            - hasProperty: "options"
+      - think: 10
+      - disconnect:
+
+  - name: "Long-lived Connection Test"
+    weight: 30
+    engine: ws
+    flow:
+      - connect:
+          url: "ws://localhost:3001"
+          expect:
+            - statusCode: 101
+      - think: 30
+      - send:
+          message: "heartbeat"
+      - think: 30
+      - receive:
+          message: "viewerCount"
+      - think: 30
+      - disconnect:

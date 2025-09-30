@@ -1,0 +1,77 @@
+services:
+  db:
+    image: postgres:14-alpine
+    container_name: esports-postgres-db
+    restart: always
+    environment:
+      # These must match the DATABASE_URL used by the API Gateway
+      POSTGRES_USER: esports_user
+      POSTGRES_PASSWORD: esports_password
+      POSTGRES_DB: esports_platform
+    ports:
+      # Expose PostgreSQL port locally (optional, for connecting tools like DBeaver)
+      - "5432:5432"
+    volumes:
+      # Persist data across container restarts
+      - postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U esports_user -d esports_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: esports-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      # Database URL connecting to the 'db' service (using its service name as hostname)
+      DATABASE_URL: postgres://esports_user:esports_password@db:5432/esports_platform?sslmode=disable
+      JWT_SECRET: your-super-secret-jwt-key-here
+      PORT: 8080
+    depends_on:
+      db:
+        condition: service_healthy
+      notification-svc:
+        condition: service_started
+    # Wait for the DB to be fully healthy before starting the API Gateway
+    restart: on-failure
+
+  notification-svc:
+    build:
+      context: ./notification-svc
+      dockerfile: Dockerfile
+    container_name: esports-notification-svc
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+    restart: on-failure
+
+  frontend:
+    # Use a generic node image for the frontend build/run stage
+    image: node:20-alpine
+    container_name: esports-frontend
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount the local frontend code into the container
+      - ./frontend:/app
+      # Anonymous volume to prevent node_modules installed inside from overwriting local
+      - /app/node_modules
+    environment:
+      # Next.js development runs on 3000 by default
+      NODE_ENV: development
+    # Run the Next.js development server
+    command: sh -c "npm install && npm run dev"
+    restart: on-failure
+    depends_on:
+      api-gateway:
+        condition: service_started
+
+volumes:
+  postgres_data:

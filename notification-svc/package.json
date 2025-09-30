@@ -1,0 +1,37 @@
+{
+  "name": "notification-svc",
+  "version": "1.0.0",
+  "description": "Real-time notification and polling service for eSports platform",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "start": "node dist/server.js",
+    "test": "jest --runInBand"
+  },
+  "keywords": [
+    "websocket",
+    "socket.io",
+    "typescript",
+    "esports"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.10.6",
+    "axios": "^1.6.5",
+    "jest": "^29.7.0",
+    "socket.io-client": "^4.7.2",
+    "ts-jest": "^29.1.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  }
+}
