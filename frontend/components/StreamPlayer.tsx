@@ -84,7 +84,7 @@ const StreamPlayer: React.FC<StreamPlayerProps> = ({ streamId, lang }) => {
         autoPlay
         playsInline
       >
-        <source src="http://localhost:8080/hls/stream.m3u8" type="application/x-mpegURL" />
+        <source src="http://192.168.1.171:8080/hls/stream.m3u8" type="application/x-mpegURL" />
       </video>
 
       {/* Top Overlay - Always Visible */}
@@ -180,4 +180,5 @@ const StreamPlayer: React.FC<StreamPlayerProps> = ({ streamId, lang }) => {
 };
 
 export default StreamPlayer;
+
 

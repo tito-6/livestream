@@ -3,7 +3,5 @@ node_modules/
 .DS_Store
 *.log
 *.zip
-ffmpeg/
-zig/
-owncast/
-owncast.exe
+
+.env

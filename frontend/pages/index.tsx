@@ -1,25 +1,42 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import HeroSection from '../components/HeroSection';
-import { getOwncastStatus, OwncastStatus } from '../lib/owncast';
-import { MdLiveTv } from 'react-icons/md';
+import { getStreamStatus, StreamStatus } from '../lib/api';
+import { MdLiveTv, MdArticle } from 'react-icons/md';
 import Link from 'next/link';
+
+interface Post {
+  id: number;
+  title: string;
+  content: string;
+  image_url: string;
+  category: string;
+  created_at: string;
+}
 
 export default function HomePage() {
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
-  const [status, setStatus] = useState<OwncastStatus | null>(null);
+  const [status, setStatus] = useState<StreamStatus | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
 
   useEffect(() => {
     async function fetchData() {
-      const statusData = await getOwncastStatus();
+      const statusData = await getStreamStatus();
       setStatus(statusData);
+
+      // Fetch posts
+      try {
+        const res = await fetch('http://192.168.1.171:8080/api/posts');
+        const json = await res.json();
+        if (json.data) setPosts(json.data.slice(0, 3)); // Show top 3
+      } catch (err) { console.error(err); }
     }
     fetchData();
   }, []);
 
   return (
     <Layout lang={lang}>
-      {/* Hero Section - The Oasis Gateway */}
+      {/* Hero Section */}
       <HeroSection lang={lang} />
 
       {/* Live Now Banner (if online) */}
@@ -52,17 +69,38 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Simplified Content */}
-      <div className="container mx-auto px-4 lg:px-8 py-20 text-center">
-        <h2 className="text-3xl font-bold text-white mb-6">
-          {lang === 'ar' ? 'مرحباً بك في واحة الرياضة' : 'Welcome to The Sports Oasis'}
-        </h2>
-        <p className="text-white/60 max-w-2xl mx-auto text-lg">
-          {lang === 'ar'
-            ? 'منصتك الأولى للبث المباشر للرياضات الإلكترونية. استمتع بأفضل تجربة مشاهدة مع أحدث التقنيات.'
-            : 'Your premier platform for eSports live streaming. Enjoy the best viewing experience with state-of-the-art technology.'}
-        </p>
+      {/* Latest News / Posts */}
+      <div className="container mx-auto px-4 lg:px-8 py-20">
+        <div className="flex items-center gap-3 mb-8">
+          <MdArticle className="text-3xl text-emerald-energy" />
+          <h2 className="text-3xl font-bold text-white">
+            {lang === 'ar' ? 'أحدث الأخبار' : 'Latest News'}
+          </h2>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {posts.map(post => (
+            <div key={post.id} className="glass-panel group rounded-xl overflow-hidden hover:border-emerald-energy transition-all">
+              <div className="h-48 bg-gray-800 overflow-hidden relative">
+                <img src={post.image_url || 'https://via.placeholder.com/400'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={post.title} />
+                <div className="absolute top-3 left-3 bg-midnight-black/80 backdrop-blur px-2 py-1 rounded text-xs text-emerald-energy font-bold uppercase tracking-wider">
+                  {post.category}
+                </div>
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-emerald-energy transition-colors">{post.title}</h3>
+                <p className="text-white/60 text-sm line-clamp-3 mb-4">{post.content}</p>
+                <span className="text-xs text-white/40">{new Date(post.created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
+          ))}
+          {posts.length === 0 && (
+            <div className="col-span-3 text-center text-white/50 py-10">No news updates available.</div>
+          )}
+        </div>
       </div>
+
     </Layout>
   );
 }
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FiHome, FiTrendingUp, FiUser, FiSearch, FiMenu, FiX } from 'react-icons/fi';
 import { BiJoystick } from 'react-icons/bi';
@@ -11,6 +11,16 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ lang = 'ar' }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [categories, setCategories] = useState<{ id: string, name: string, icon: string, color: string }[]>([]);
+
+  useEffect(() => {
+    fetch('http://192.168.1.171:3000/api/cms')
+      .then(res => res.json())
+      .then(data => {
+        if (data.categories) setCategories(data.categories);
+      })
+      .catch(err => console.error('Failed to load nav', err));
+  }, []);
 
   const translations = {
     ar: {
@@ -20,7 +30,7 @@ const Navbar: React.FC<NavbarProps> = ({ lang = 'ar' }) => {
       tournaments: 'البطولات',
       profile: 'الملف الشخصي',
       search: 'البحث...',
-      platform: 'واحة الرياضة',
+      title: 'Sport Events',
       schedule: 'الجدول',
     },
     en: {
@@ -30,7 +40,7 @@ const Navbar: React.FC<NavbarProps> = ({ lang = 'ar' }) => {
       tournaments: 'Tournaments',
       profile: 'Profile',
       search: 'Search...',
-      platform: 'The Sports Oasis',
+      title: 'Sport Events | The Sports Oasis',
       schedule: 'Schedule',
     }
   };
@@ -41,7 +51,7 @@ const Navbar: React.FC<NavbarProps> = ({ lang = 'ar' }) => {
     <nav className="fixed top-0 left-0 right-0 z-50 glass-panel">
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          
+
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="relative">
@@ -51,7 +61,7 @@ const Navbar: React.FC<NavbarProps> = ({ lang = 'ar' }) => {
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-energy rounded-full animate-pulse-live" />
             </div>
             <span className="text-xl font-bold text-gradient-oasis hidden md:block">
-              {t.platform}
+              {t.title}
             </span>
           </Link>
 
@@ -61,18 +71,26 @@ const Navbar: React.FC<NavbarProps> = ({ lang = 'ar' }) => {
               <FiHome className="text-xl group-hover:text-emerald-energy transition-colors" />
               <span>{t.home}</span>
             </Link>
-            
+
             <Link href="/live" className="nav-link group relative">
               <MdLiveTv className="text-xl group-hover:text-emerald-energy transition-colors" />
               <span>{t.live}</span>
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-energy rounded-full animate-pulse-live" />
             </Link>
-            
-            <Link href="/sports" className="nav-link group">
-              <BiJoystick className="text-xl group-hover:text-emerald-energy transition-colors" />
-              <span>{t.games}</span>
-            </Link>
-            
+
+            {categories.length > 0 ? categories.map(cat => (
+              <Link key={cat.id} href={`/sports/${cat.id}`} className="nav-link group">
+                <BiJoystick className="text-xl group-hover:text-emerald-energy transition-colors" />
+                <span>{cat.name}</span>
+              </Link>
+            )) : (
+              // Fallback if no categories loaded
+              <Link href="/sports" className="nav-link group">
+                <BiJoystick className="text-xl group-hover:text-emerald-energy transition-colors" />
+                <span>{t.games}</span>
+              </Link>
+            )}
+
             <Link href="/schedule" className="nav-link group">
               <FiTrendingUp className="text-xl group-hover:text-emerald-energy transition-colors" />
               <span>{t.schedule}</span>
@@ -129,22 +147,22 @@ const Navbar: React.FC<NavbarProps> = ({ lang = 'ar' }) => {
               <FiHome className="text-xl" />
               <span>{t.home}</span>
             </Link>
-            
+
             <Link href="/live" className="mobile-nav-link">
               <MdLiveTv className="text-xl" />
               <span>{t.live}</span>
             </Link>
-            
+
             <Link href="/sports" className="mobile-nav-link">
               <BiJoystick className="text-xl" />
               <span>{t.games}</span>
             </Link>
-            
+
             <Link href="/schedule" className="mobile-nav-link">
               <FiTrendingUp className="text-xl" />
               <span>{t.schedule}</span>
             </Link>
-            
+
             <Link href="/profile" className="mobile-nav-link">
               <FiUser className="text-xl" />
               <span>{t.profile}</span>
@@ -210,4 +228,5 @@ const Navbar: React.FC<NavbarProps> = ({ lang = 'ar' }) => {
 };
 
 export default Navbar;
+
 
